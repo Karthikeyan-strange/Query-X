@@ -1,0 +1,47 @@
+[
+  {
+    "complaint_id": "CMP-SAMPLE-001",
+    "email_subject": "My order has not been delivered - URGENT",
+    "complaint_text": "I placed an order (QX-2024-00001) on 1st March 2024 and was promised delivery by 4th March. It is now 5th March and I still have not received my package. The tracking shows it has been stuck at Trichy since yesterday. Tracking number is QXT-CH-20240301-001.",
+    "expected_category": "DELIVERY_DELAY",
+    "expected_urgency": "HIGH",
+    "order_number": "QX-2024-00001",
+    "tracking_number": "QXT-CH-20240301-001"
+  },
+  {
+    "complaint_id": "CMP-SAMPLE-002",
+    "email_subject": "Package arrived in smashed and broken condition",
+    "complaint_text": "Parcel QXT-CB-20240305-001 arrived today at my doorstep. The outer cardboard box was completely crushed and the electronic appliance inside has cracked casing and is unusable.",
+    "expected_category": "DAMAGED_GOODS",
+    "expected_urgency": "HIGH",
+    "order_number": null,
+    "tracking_number": "QXT-CB-20240305-001"
+  },
+  {
+    "complaint_id": "CMP-SAMPLE-003",
+    "email_subject": "URGENT MEDICAL: Critical dialysis supplies delayed",
+    "complaint_text": "Shipment QXT-MD-20240310-002 contains emergency medical dialysis fluids needed for tomorrow morning hospital procedure. Please escalate immediately!",
+    "expected_category": "DELIVERY_DELAY",
+    "expected_urgency": "CRITICAL",
+    "order_number": null,
+    "tracking_number": "QXT-MD-20240310-002"
+  },
+  {
+    "complaint_id": "CMP-SAMPLE-004",
+    "email_subject": "App says delivered but nothing at my door",
+    "complaint_text": "My order QX-2024-00002 has tracking number QXT-CB-20240305-001. The SMS says it was delivered 2 hours ago, but I was home and no delivery person came. My parcel is missing.",
+    "expected_category": "MISSING_PACKAGE",
+    "expected_urgency": "HIGH",
+    "order_number": "QX-2024-00002",
+    "tracking_number": "QXT-CB-20240305-001"
+  },
+  {
+    "complaint_id": "CMP-SAMPLE-005",
+    "email_subject": "Tracking stuck with no updates for 4 days",
+    "complaint_text": "Order QX-2024-00003 has had no update since Monday. The tracking status has not moved from the origin hub.",
+    "expected_category": "DELIVERY_NOT_UPDATED",
+    "expected_urgency": "MEDIUM",
+    "order_number": "QX-2024-00003",
+    "tracking_number": null
+  }
+]

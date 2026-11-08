@@ -1,0 +1,60 @@
+# Spring Boot & Application Settings
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: QueryX
+
+  # Datasource Configuration - Supabase PostgreSQL
+  # Credentials read strictly from environment variables
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require}
+    username: ${DB_USERNAME:postgres.tbbmvfdglucrbclxlkok}
+    password: ${DB_PASSWORD:Karthikeyan_1606}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+
+  # JPA & Hibernate Settings
+  # ddl-auto: validate ensures Hibernate strictly verifies the existing schema
+  # matches our JPA entity mappings without modifying or creating any tables.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Disable Flyway in Backend 2 as Backend 1 is the migration owner
+  flyway:
+    enabled: false
+
+# Actuator Endpoints Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# JWT Security Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: 86400000 # 24 hours
+  ai-service:
+    url: ${AI_SERVICE_URL:http://localhost:8000}
+
+
