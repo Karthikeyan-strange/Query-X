@@ -3,7 +3,7 @@
  * Connects React Frontend to Spring Boot Backend (http://localhost:8080).
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://queryx-backend-y1xq.onrender.com/api'
 
 export function getAuthToken(): string | null {
   return localStorage.getItem('queryx_token')
