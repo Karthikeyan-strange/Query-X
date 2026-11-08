@@ -2,7 +2,6 @@ package com.logistics.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -20,11 +19,10 @@ import java.util.List;
 
 /**
  * Spring Security Configuration.
- * Configures CORS, stateless JWT authentication, and route authorization.
+ * Configures stateless JWT authentication, permissive CORS for Vercel, and public auth endpoints.
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -60,11 +58,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Exact allowed origins as specified
-        configuration.setAllowedOrigins(Arrays.asList(
+        // Allowed origin patterns supporting all Vercel domains and local environments
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "https://*.vercel.app",
                 "https://query-x-six.vercel.app",
-                "http://localhost:5173",
-                "http://localhost:3000"
+                "http://localhost:*",
+                "https://*.onrender.com"
         ));
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
