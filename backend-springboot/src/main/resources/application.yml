@@ -11,7 +11,7 @@ spring:
   # Datasource Configuration - Supabase PostgreSQL
   # Credentials read strictly from environment variables
   datasource:
-    url: ${DB_URL:jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require}
+    url: ${DB_URL:jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0}
     username: ${DB_USERNAME:postgres.tbbmvfdglucrbclxlkok}
     password: ${DB_PASSWORD:Karthikeyan_1606}
     driver-class-name: org.postgresql.Driver
@@ -21,6 +21,7 @@ spring:
       idle-timeout: 300000
       connection-timeout: 30000
       max-lifetime: 1800000
+      connection-test-query: SELECT 1
 
   # JPA & Hibernate Settings
   # ddl-auto: validate ensures Hibernate strictly verifies the existing schema

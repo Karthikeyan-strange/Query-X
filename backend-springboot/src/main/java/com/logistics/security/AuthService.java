@@ -13,6 +13,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -44,6 +45,7 @@ public class AuthService {
     /**
      * Authenticates internal team members (ADMIN, SUPPORT, INVESTIGATOR).
      */
+    @Transactional(readOnly = true)
     public AuthResponse authenticateUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
@@ -79,6 +81,7 @@ public class AuthService {
     /**
      * Authenticates customer using Email + Order ID.
      */
+    @Transactional
     public AuthResponse authenticateCustomer(CustomerLoginRequest request) {
         Customer customer = customerRepository.findByEmailIgnoreCase(request.getEmail().trim())
                 .orElseThrow(() -> new BadCredentialsException("Customer not found with this email"));
