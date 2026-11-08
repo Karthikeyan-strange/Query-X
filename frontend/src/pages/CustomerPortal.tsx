@@ -11,7 +11,7 @@ import {
   type TicketMessage,
 } from '../data/customerPortalData'
 import { ThemeToggle } from '../hooks/useTheme'
-import { getStoredUser } from '../api/client'
+import { api, getStoredUser } from '../api/client'
 
 type Section = 'Dashboard' | 'My Orders' | 'Raise a Complaint' | 'My Support Tickets' | 'Notifications' | 'Profile & Settings'
 const categories: CustomerComplaintCategory[] = ['Delayed Delivery', 'Shipment Not Updated', 'Package Not Delivered', 'Damaged Package', 'Incorrect Delivery Status', 'Other']
@@ -198,7 +198,24 @@ export default function CustomerPortal() {
     setSelectedTicketId(ticket.id); setConfirmationTicketId(''); setSelectedOrderId(''); setSection('My Support Tickets')
   }
   function openOrder(order: CustomerOrder) { setSelectedOrderId(order.id); setComplaintOrderId(order.id); setSelectedTicketId(''); setSection('My Orders') }
-  function submitTicket(ticket: CustomerTicket) { setTickets((current) => [ticket, ...current]); setSelectedTicketId(''); setComplaintOrderId(''); setConfirmationTicketId(ticket.id); setSection('Raise a Complaint') }
+  function submitTicket(ticket: CustomerTicket) {
+    setTickets((current) => [ticket, ...current])
+    setSelectedTicketId('')
+    setComplaintOrderId('')
+    setConfirmationTicketId(ticket.id)
+    setSection('Raise a Complaint')
+
+    api.complaints.create({
+      customerEmail: account.email,
+      orderNumber: ticket.orderId,
+      emailSubject: ticket.subject,
+      emailBody: ticket.preview,
+      complaintType: ticket.category.toUpperCase().replace(/\s+/g, '_'),
+      urgency: 'HIGH',
+    }).catch((err: any) => {
+      console.warn('Backend complaint sync skipped or offline:', err?.message)
+    })
+  }
   function sendReply(body: string, attachments?: TicketAttachment[]) {
     if (!selectedTicketId || !account) return
     const now = new Date().toISOString()
