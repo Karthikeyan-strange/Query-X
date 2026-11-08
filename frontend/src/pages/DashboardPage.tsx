@@ -3,7 +3,7 @@ import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
   Check, ChevronDown, ChevronRight, ClipboardList, Clock3, CloudRain,
   Command, Compass, FileSearch, Filter, LogOut, MapPin, Menu, MessageSquareText, MoreHorizontal,
-  PackageCheck, Search, Settings, ShieldCheck, Truck, UserRound, Users,
+  PackageCheck, Search, Settings, ShieldCheck, Truck, UserRound, Users, Copy, Send, Sparkles, X,
 } from 'lucide-react'
 import DeliveryMap from '../components/dashboard/DeliveryMap'
 import { ThemeToggle } from '../hooks/useTheme'
@@ -158,7 +158,105 @@ function QuickActions({ onNavigate }: { onNavigate: (view: View) => void }) {
 }
 
 function ComplaintDetail({ complaint, onBack }: { complaint: Complaint; onBack: () => void }) {
-  return <div className="detail-page"><button className="detail-back" onClick={onBack}><ChevronRight size={15} /> Back to complaints</button><div className="detail-title-row"><div><span className="section-kicker">CASE INVESTIGATION · {complaint.id}</span><h1>{complaint.category}</h1><p>{complaint.summary}</p></div><PriorityBadge priority={complaint.priority} /></div><div className="detail-grid"><section className="panel detail-main"><div className="panel-heading"><div><span className="section-kicker">INVESTIGATION STATUS</span><h2>Case overview</h2></div><StatusBadge status={complaint.status} /></div><div className="detail-timeline"><div className="timeline-step done"><i><Check size={13} /></i><span><b>Complaint received</b><small>{complaint.received} · Customer portal</small></span></div><div className="timeline-step done"><i><Check size={13} /></i><span><b>AI investigation started</b><small>Shipment events and regional conditions linked</small></span></div><div className="timeline-step current"><i><Activity size={13} /></i><span><b>Agent review</b><small>Assigned to {complaint.agent}</small></span></div><div className="timeline-step"><i><MessageSquareText size={13} /></i><span><b>Customer response</b><small>Pending investigation outcome</small></span></div></div><div className="detail-actions"><button className="primary-action" onClick={() => alert('Response draft prepared for this demo case.')}>Draft customer response <ArrowRight size={15} /></button><button className="secondary-action" onClick={() => alert('Case reassignment is available in this frontend demo.')}>Reassign case</button></div></section><section className="panel detail-facts"><div className="panel-heading"><div><span className="section-kicker">SHIPMENT RECORD</span><h2>Customer & order</h2></div></div><dl><div><dt>Customer</dt><dd>{complaint.customer}</dd></div><div><dt>Order ID</dt><dd>{complaint.order}</dd></div><div><dt>Location</dt><dd>{complaint.location}</dd></div><div><dt>Category</dt><dd>{complaint.category}</dd></div><div><dt>Assigned agent</dt><dd>{complaint.agent}</dd></div><div><dt>Received</dt><dd>{complaint.received}</dd></div></dl></section></div></div>
+  const [showModal, setShowModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+  const [draftSubject, setDraftSubject] = useState(`Delivery Update: QueryX Order ${complaint.order} - Priority Transit Status`);
+  const [draftBody, setDraftBody] = useState(
+    `Dear ${complaint.customer},\n\nThank you for reaching out to QueryX Support regarding your order ${complaint.order}.\n\nWe sincerely apologize for the delay with your shipment. Our regional logistics investigation confirms your consignment is currently at the ${complaint.location} transit facility.\n\nCurrent Action & Next Steps:\n• Our dispatch team has marked consignment ${complaint.order} as high priority for expedited dispatch.\n• A local delivery representative will contact you directly to confirm doorstep handover.\n\nThank you for your patience and understanding.\n\nWarm regards,\nQueryX Logistics Support Team\nsupport@queryx.in`
+  );
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`${draftSubject}\n\n${draftBody}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSend = () => {
+    setIsSent(true);
+    setTimeout(() => {
+      setIsSent(false);
+      setShowModal(false);
+      alert(`Customer response draft successfully approved and dispatched to ${complaint.customer}!`);
+    }, 1000);
+  };
+
+  return (
+    <div className="detail-page">
+      <button className="detail-back" onClick={onBack}><ChevronRight size={15} /> Back to complaints</button>
+      <div className="detail-title-row">
+        <div><span className="section-kicker">CASE INVESTIGATION · {complaint.id}</span><h1>{complaint.category}</h1><p>{complaint.summary}</p></div>
+        <PriorityBadge priority={complaint.priority} />
+      </div>
+      <div className="detail-grid">
+        <section className="panel detail-main">
+          <div className="panel-heading"><div><span className="section-kicker">INVESTIGATION STATUS</span><h2>Case overview</h2></div><StatusBadge status={complaint.status} /></div>
+          <div className="detail-timeline">
+            <div className="timeline-step done"><i><Check size={13} /></i><span><b>Complaint received</b><small>{complaint.received} · Customer portal</small></span></div>
+            <div className="timeline-step done"><i><Check size={13} /></i><span><b>AI investigation started</b><small>Shipment events and regional conditions linked</small></span></div>
+            <div className="timeline-step current"><i><Activity size={13} /></i><span><b>Agent review</b><small>Assigned to {complaint.agent}</small></span></div>
+            <div className="timeline-step"><i><MessageSquareText size={13} /></i><span><b>Customer response</b><small>Pending investigation outcome</small></span></div>
+          </div>
+          <div className="detail-actions">
+            <button className="primary-action" onClick={() => setShowModal(true)}>
+              Draft customer response <Sparkles size={14} />
+            </button>
+            <button className="secondary-action" onClick={() => alert(`Case ${complaint.id} reassigned to regional investigation team.`)}>
+              Reassign case
+            </button>
+          </div>
+        </section>
+        <section className="panel detail-facts">
+          <div className="panel-heading"><div><span className="section-kicker">SHIPMENT RECORD</span><h2>Customer & order</h2></div></div>
+          <dl>
+            <div><dt>Customer</dt><dd>{complaint.customer}</dd></div>
+            <div><dt>Order ID</dt><dd>{complaint.order}</dd></div>
+            <div><dt>Location</dt><dd>{complaint.location}</dd></div>
+            <div><dt>Category</dt><dd>{complaint.category}</dd></div>
+            <div><dt>Assigned agent</dt><dd>{complaint.agent}</dd></div>
+            <div><dt>Received</dt><dd>{complaint.received}</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-row">
+                <Sparkles size={16} color="#92582b" />
+                <h3>AI Generated Customer Response</h3>
+                <span className="modal-badge">QueryX AI</span>
+              </div>
+              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-evidence-box">
+                <b>AI Investigation Summary</b>
+                <span>{complaint.summary} Shipment held at {complaint.location} sorting center. Priority courier protocol activated.</span>
+              </div>
+              <div className="modal-field">
+                <label>Email Subject</label>
+                <input value={draftSubject} onChange={(e) => setDraftSubject(e.target.value)} />
+              </div>
+              <div className="modal-field">
+                <label>Response Body (Editable)</label>
+                <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} rows={9} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-copy" onClick={handleCopy}>
+                {copied ? <><Check size={14} color="#15803d" /> Copied!</> : <><Copy size={14} /> Copy Draft</>}
+              </button>
+              <button className="btn-send" onClick={handleSend} disabled={isSent}>
+                {isSent ? <><Check size={14} /> Approved & Dispatched</> : <><Send size={14} /> Approve & Send Response</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function DashboardPage() {
