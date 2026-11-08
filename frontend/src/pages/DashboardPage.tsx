@@ -7,6 +7,23 @@ import {
 } from 'lucide-react'
 import DeliveryMap from '../components/dashboard/DeliveryMap'
 import { ThemeToggle } from '../hooks/useTheme'
+import { getStoredUser } from '../api/client'
+
+function getUserProfile() {
+  const stored = getStoredUser()
+  const name = stored?.name || 'Priya Srinivasan'
+  const roleRaw = stored?.role || 'SUPPORT'
+  const role = roleRaw === 'ADMIN' ? 'System Administrator' : roleRaw === 'SUPERVISOR' ? 'Logistics Supervisor' : 'Support Agent'
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'PS'
+  const firstName = name.split(' ')[0] || 'Priya'
+  return { name, role, initials, firstName }
+}
 
 type View = 'Dashboard' | 'Complaints' | 'Investigations' | 'Escalated Cases' | 'Regional Events' | 'Shipment Tracking'
 type Complaint = {
@@ -38,6 +55,7 @@ function navigate(path: string) {
 function pathFor(view: View) { return view === 'Dashboard' ? '/' : `/${view.toLowerCase().replaceAll(' ', '-')}` }
 
 function Sidebar({ active, onNavigate, mobileOpen, closeMobile }: { active: View; onNavigate: (view: View) => void; mobileOpen: boolean; closeMobile: () => void }) {
+  const user = getUserProfile()
   return <>
     {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={closeMobile} />}
     <aside className={`ops-sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
@@ -55,7 +73,7 @@ function Sidebar({ active, onNavigate, mobileOpen, closeMobile }: { active: View
         <div className="sidebar-status"><span className="live-indicator" /><span>All systems operational</span><ChevronRight size={14} /></div>
         <a className="sidebar-link" href="/profile" onClick={(e) => { e.preventDefault(); navigate('/profile') }}><UserRound size={17} /><span>My profile</span></a>
         <a className="sidebar-link" href="/settings" onClick={(e) => { e.preventDefault(); navigate('/settings') }}><Settings size={17} /><span>Settings</span></a>
-        <button className="sidebar-user" onClick={() => navigate('/profile')}><span className="agent-avatar">PS</span><span><b>Priya Srinivasan</b><small>Support Agent</small></span><MoreHorizontal size={17} /></button>
+        <button className="sidebar-user" onClick={() => navigate('/profile')}><span className="agent-avatar">{user.initials}</span><span><b>{user.name}</b><small>{user.role}</small></span><MoreHorizontal size={17} /></button>
         <button className="sidebar-logout" onClick={() => { localStorage.clear(); window.location.assign('/'); }}><LogOut size={16} /><span>Log out</span></button>
       </div>
     </aside>
@@ -63,6 +81,7 @@ function Sidebar({ active, onNavigate, mobileOpen, closeMobile }: { active: View
 }
 
 function Navbar({ onMenu, onNavigate }: { onMenu: () => void; onNavigate: (view: View) => void }) {
+  const user = getUserProfile()
   const [query, setQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   function submitSearch(e: FormEvent) { e.preventDefault(); if (query.trim()) { onNavigate('Shipment Tracking'); navigate(`/shipment-tracking?order=${encodeURIComponent(query.trim())}`) } }
@@ -74,7 +93,7 @@ function Navbar({ onMenu, onNavigate }: { onMenu: () => void; onNavigate: (view:
       <div className="notification-wrap"><button className={`icon-button notification-button${showNotifications ? ' is-open' : ''}`} onClick={() => setShowNotifications(!showNotifications)} aria-label="Notifications"><Bell size={18} /><i /></button>
         {showNotifications && <div className="notification-popover"><div className="popover-heading"><b>Notifications</b><span>3 new</span></div><p><AlertTriangle size={15} /> Flood alert updated near Chennai</p><p><MessageSquareText size={15} /> 2 new customer complaints</p><p><Clock3 size={15} /> Investigation CMP-28490 needs review</p></div>}
       </div>
-      <button className="navbar-profile" onClick={() => navigate('/profile')}><span className="agent-avatar">PS</span><span><b>Priya Srinivasan</b><small>Support Agent</small></span><ChevronDown size={14} /></button>
+      <button className="navbar-profile" onClick={() => navigate('/profile')}><span className="agent-avatar">{user.initials}</span><span><b>{user.name}</b><small>{user.role}</small></span><ChevronDown size={14} /></button>
       <button
         style={{
           display: 'inline-flex',
@@ -260,6 +279,7 @@ function ComplaintDetail({ complaint, onBack }: { complaint: Complaint; onBack: 
 }
 
 export default function DashboardPage() {
+  const user = getUserProfile()
   const [path, setPath] = useState(window.location.pathname)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(() => complaints.find((c) => `/complaints/${c.id.toLowerCase()}` === window.location.pathname) ?? null)
@@ -273,8 +293,8 @@ export default function DashboardPage() {
   const isDetail = Boolean(selectedComplaint)
   const title = active === 'Dashboard' ? '' : active
   return <div className="ops-app"><Sidebar active={active} onNavigate={go} mobileOpen={mobileOpen} closeMobile={() => setMobileOpen(false)} /><div className="ops-main"><Navbar onMenu={() => setMobileOpen(true)} onNavigate={go} /><main className="dashboard-content">
-    {path === '/profile' || path === '/settings' ? <section className="panel utility-page"><span className="section-kicker">ACCOUNT</span><h1>{path === '/profile' ? 'My profile' : 'Settings'}</h1><p>{path === '/profile' ? 'Your support operations account.' : 'Manage your dashboard preferences.'}</p><div className="utility-profile"><span className="agent-avatar">PS</span><div><b>Priya Srinivasan</b><small>Support Agent · South Region</small></div></div>{path === '/settings' && <label className="settings-toggle"><input type="checkbox" defaultChecked /> Receive regional disruption notifications</label>}</section> : isDetail && selectedComplaint ? <ComplaintDetail complaint={selectedComplaint} onBack={() => go('Complaints')} /> : active === 'Dashboard' ? <>
-      <div className="welcome-row"><div><span className="section-kicker">THURSDAY, 5 NOVEMBER 2026 <i className="kicker-dot" /> SOUTH REGION OPERATIONS</span><h1>Welcome back, <span>Priya</span></h1><p>Here's an overview of your logistics investigations and customer complaints.</p></div><button className="date-range"><Clock3 size={15} /> Today <ChevronDown size={14} /></button></div>
+    {path === '/profile' || path === '/settings' ? <section className="panel utility-page"><span className="section-kicker">ACCOUNT</span><h1>{path === '/profile' ? 'My profile' : 'Settings'}</h1><p>{path === '/profile' ? 'Your support operations account.' : 'Manage your dashboard preferences.'}</p><div className="utility-profile"><span className="agent-avatar">{user.initials}</span><div><b>{user.name}</b><small>{user.role} · South Region</small></div></div>{path === '/settings' && <label className="settings-toggle"><input type="checkbox" defaultChecked /> Receive regional disruption notifications</label>}</section> : isDetail && selectedComplaint ? <ComplaintDetail complaint={selectedComplaint} onBack={() => go('Complaints')} /> : active === 'Dashboard' ? <>
+      <div className="welcome-row"><div><span className="section-kicker">THURSDAY, 5 NOVEMBER 2026 <i className="kicker-dot" /> SOUTH REGION OPERATIONS</span><h1>Welcome back, <span>{user.firstName}</span></h1><p>Here's an overview of your logistics investigations and customer complaints.</p></div><button className="date-range"><Clock3 size={15} /> Today <ChevronDown size={14} /></button></div>
       <section className="kpi-grid" aria-label="Operations summary">
         <KpiCard title="Total complaints received" value="248" detail="Across South Region today" trend="12.8%" icon={<MessageSquareText size={18} />} tone="brown" onClick={() => go('Complaints')} />
         <KpiCard title="Open investigations" value="36" detail="12 require agent attention" trend="4.2%" icon={<FileSearch size={18} />} tone="gold" onClick={() => go('Investigations')} />

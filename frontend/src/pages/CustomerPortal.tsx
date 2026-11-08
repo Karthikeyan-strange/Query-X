@@ -11,6 +11,7 @@ import {
   type TicketMessage,
 } from '../data/customerPortalData'
 import { ThemeToggle } from '../hooks/useTheme'
+import { getStoredUser } from '../api/client'
 
 type Section = 'Dashboard' | 'My Orders' | 'Raise a Complaint' | 'My Support Tickets' | 'Notifications' | 'Profile & Settings'
 const categories: CustomerComplaintCategory[] = ['Delayed Delivery', 'Shipment Not Updated', 'Package Not Delivered', 'Damaged Package', 'Incorrect Delivery Status', 'Other']
@@ -142,7 +143,7 @@ function Attachments({ files }: { files?: TicketAttachment[] }) {
 function MessageBubble({ message }: { message: TicketMessage }) {
   const customer = message.role === 'Customer'
   const ai = message.role === 'AI Assistant'
-  return <article className={`conversation-message${customer ? ' message-customer' : ' message-support'}${ai ? ' message-ai' : ''}`}><span className={`message-avatar${customer ? ' avatar-customer' : ai ? ' avatar-ai' : ' avatar-agent'}`}>{customer ? <UserRound size={15} /> : ai ? <MessageCircle size={15} /> : 'PS'}</span><div className="message-body"><header><span><b>{message.sender}</b><small>{message.role}</small></span><time>{formatDate(message.sentAt, true)}</time></header><div className="message-content">{message.body.split('\n').map((line, i) => <p key={i}>{line || <br />}</p>)}</div><Attachments files={message.attachments} /></div></article>
+  return <article className={`conversation-message${customer ? ' message-customer' : ' message-support'}${ai ? ' message-ai' : ''}`}><span className={`message-avatar${customer ? ' avatar-customer' : ai ? ' avatar-ai' : ' avatar-agent'}`}>{customer ? <UserRound size={15} /> : ai ? <MessageCircle size={15} /> : (message.sender.split(' ').map((p) => p[0]).slice(0, 2).join('') || 'PS')}</span><div className="message-body"><header><span><b>{message.sender}</b><small>{message.role}</small></span><time>{formatDate(message.sentAt, true)}</time></header><div className="message-content">{message.body.split('\n').map((line, i) => <p key={i}>{line || <br />}</p>)}</div><Attachments files={message.attachments} /></div></article>
 }
 
 function ReplyComposer({ onSend }: { onSend: (body: string, attachments?: TicketAttachment[]) => void }) {
@@ -168,7 +169,16 @@ function ProfilePage({ account, notificationsEnabled, onToggle }: { account: Cus
 }
 
 export default function CustomerPortal() {
-  const [account] = useState<CustomerAccount>(customerAccounts[0])
+  const storedUser = getStoredUser()
+  const matchedAccount = customerAccounts.find(
+    (a) => a.email.toLowerCase() === storedUser?.email?.toLowerCase()
+  )
+  const baseAccount = matchedAccount || customerAccounts[0]
+  const [account] = useState<CustomerAccount>(() => ({
+    ...baseAccount,
+    name: storedUser?.name || baseAccount.name,
+    email: storedUser?.email || baseAccount.email,
+  }))
   const [orders] = useState<CustomerOrder[]>(() => account.orders.map((order) => ({ ...order, events: [...order.events] })))
   const [tickets, setTickets] = useState<CustomerTicket[]>(() => account.tickets.map((ticket) => ({ ...ticket, messages: ticket.messages.map((message) => ({ ...message, unread: Boolean(message.unread) })) })))
   const [section, setSection] = useState<Section>('Dashboard')
