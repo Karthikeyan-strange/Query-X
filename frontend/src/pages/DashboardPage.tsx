@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import DeliveryMap from '../components/dashboard/DeliveryMap'
 import { ThemeToggle } from '../hooks/useTheme'
-import { api, getStoredUser } from '../api/client'
+import { api, getStoredUser, getAuthToken, setAuthToken } from '../api/client'
 
 function getUserProfile() {
   const stored = getStoredUser()
@@ -317,14 +317,57 @@ function ComplaintDetail({ complaint, onBack }: { complaint: Complaint; onBack: 
 
 export default function DashboardPage() {
   const user = getUserProfile()
+  const [complaintList, setComplaintList] = useState<Complaint[]>([])
   const [path, setPath] = useState(window.location.pathname)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(() => complaints.find((c) => `/complaints/${c.id.toLowerCase()}` === window.location.pathname) ?? null)
-  useEffect(() => { const listener = () => { setPath(window.location.pathname); setSelectedComplaint(complaints.find((c) => `/complaints/${c.id.toLowerCase()}` === window.location.pathname) ?? null) }; window.addEventListener('popstate', listener); return () => window.removeEventListener('popstate', listener) }, [])
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
+
+  const fetchLiveComplaints = useCallback(async () => {
+    let token = getAuthToken()
+    if (!token) {
+      try {
+        const auth = await api.auth.teamLogin({
+          email: 'priya.support@queryx.in',
+          password: 'Support@1234',
+        })
+        if (auth?.token) {
+          setAuthToken(auth.token)
+        }
+      } catch (e) {
+        console.warn('Auto auth error:', e)
+      }
+    }
+
+    api.complaints.getAll()
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          setComplaintList(data.map(mapDtoToComplaint))
+        }
+      })
+      .catch((err) => {
+        console.warn('Complaints load failed:', err?.message)
+      })
+  }, [])
+
+  useEffect(() => {
+    fetchLiveComplaints()
+    const timer = setInterval(fetchLiveComplaints, 3000)
+    return () => clearInterval(timer)
+  }, [fetchLiveComplaints])
+
+  useEffect(() => {
+    const listener = () => {
+      setPath(window.location.pathname)
+      setSelectedComplaint(complaintList.find((c) => `/complaints/${c.id.toLowerCase()}` === window.location.pathname) ?? null)
+    }
+    window.addEventListener('popstate', listener)
+    return () => window.removeEventListener('popstate', listener)
+  }, [complaintList])
+
   const active = (navItems.find(({ label }) => path === pathFor(label))?.label ?? 'Dashboard') as View
-  const visibleRows = active === 'Investigations' ? complaints.filter((c) => c.status === 'Investigating' || c.status === 'AI Review')
-    : active === 'Escalated Cases' ? complaints.filter((c) => c.status === 'Escalated')
-      : active === 'Regional Events' ? complaints.filter((c) => ['Chennai, TN', 'Salem, TN', 'Erode, TN'].includes(c.location)) : complaints
+  const visibleRows = active === 'Investigations' ? complaintList.filter((c) => c.status === 'Investigating' || c.status === 'AI Review')
+    : active === 'Escalated Cases' ? complaintList.filter((c) => c.status === 'Escalated')
+      : active === 'Regional Events' ? complaintList.filter((c) => ['Chennai, TN', 'Salem, TN', 'Erode, TN'].includes(c.location)) : complaintList
   function go(view: View, statusFilter?: string) { setSelectedComplaint(null); const target = `${pathFor(view)}${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`; setPath(pathFor(view)); window.history.pushState({}, '', target) }
   function openComplaint(c: Complaint) { setSelectedComplaint(c); window.history.pushState({}, '', `/complaints/${c.id.toLowerCase()}`); setPath(`/complaints/${c.id.toLowerCase()}`); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const isDetail = Boolean(selectedComplaint)
