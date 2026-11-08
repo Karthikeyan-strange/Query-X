@@ -76,7 +76,7 @@ function mapDtoToComplaint(dto: any): Complaint {
   };
 }
 
-const complaints: Complaint[] = [];
+
 
 const navItems: { label: View; icon: typeof Activity; count?: string }[] = [
   { label: 'Dashboard', icon: Command }, { label: 'Complaints', icon: MessageSquareText, count: '24' },
