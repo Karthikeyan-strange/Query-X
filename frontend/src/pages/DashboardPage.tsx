@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
   Check, ChevronDown, ChevronRight, ClipboardList, Clock3, CloudRain,
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import DeliveryMap from '../components/dashboard/DeliveryMap'
 import { ThemeToggle } from '../hooks/useTheme'
-import { getStoredUser } from '../api/client'
+import { api, getStoredUser } from '../api/client'
 
 function getUserProfile() {
   const stored = getStoredUser()
@@ -32,14 +32,51 @@ type Complaint = {
   agent: string; received: string; age: string; summary: string
 }
 
-const complaints: Complaint[] = [
-  { id: 'CMP-28491', customer: 'Arun Kumar', initials: 'AK', order: 'TN-78420319', category: 'Delayed delivery', location: 'Chennai, TN', priority: 'High', status: 'Investigating', agent: 'Priya S.', received: 'Today, 10:42 AM', age: '12 min ago', summary: 'Shipment has not moved from the Chennai North hub for 36 hours. Customer needs the medical equipment before tomorrow.' },
-  { id: 'CMP-28490', customer: 'Meera Iyer', initials: 'MI', order: 'TN-78419852', category: 'Package not received', location: 'Coimbatore, TN', priority: 'Critical', status: 'Escalated', agent: 'Karthik R.', received: 'Today, 10:18 AM', age: '36 min ago', summary: 'Delivery was marked complete, but the customer and building security have not received the parcel.' },
-  { id: 'CMP-28489', customer: 'S. Venkatesh', initials: 'SV', order: 'TN-78417643', category: 'Damaged package', location: 'Madurai, TN', priority: 'Medium', status: 'AI Review', agent: 'Unassigned', received: 'Today, 9:56 AM', age: '58 min ago', summary: 'Outer carton arrived with visible water damage. Customer uploaded two photos for review.' },
-  { id: 'CMP-28488', customer: 'Lakshmi Narayan', initials: 'LN', order: 'TN-78415507', category: 'Missed delivery', location: 'Salem, TN', priority: 'High', status: 'Investigating', agent: 'Priya S.', received: 'Today, 9:31 AM', age: '1 hr ago', summary: 'Customer reports no delivery attempt despite a missed-delivery notification.' },
-  { id: 'CMP-28487', customer: 'R. Shanmugam', initials: 'RS', order: 'TN-78414026', category: 'Wrong address', location: 'Tiruchirappalli, TN', priority: 'Low', status: 'Resolved', agent: 'Divya M.', received: 'Today, 9:04 AM', age: '1 hr ago', summary: 'Address correction request was accepted and the parcel is back on route.' },
-  { id: 'CMP-28486', customer: 'Nithya Balaji', initials: 'NB', order: 'TN-78412911', category: 'Delayed delivery', location: 'Erode, TN', priority: 'Medium', status: 'New', agent: 'Unassigned', received: 'Today, 8:47 AM', age: '2 hr ago', summary: 'Shipment is delayed after a road closure on the Salem–Erode corridor.' },
-]
+
+function mapDtoToComplaint(dto: any): Complaint {
+  const customer = dto.customerName || (dto.customerEmail ? dto.customerEmail.split('@')[0] : 'Customer');
+  const initials = customer.split(' ').filter(Boolean).map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || 'CU';
+  const id = dto.complaintId ? ('CMP-' + dto.complaintId.slice(0, 5).toUpperCase()) : 'CMP-00000';
+  const order = dto.orderNumber || dto.extractedOrderId || 'N/A';
+  const categoryRaw = dto.complaintType || 'Delayed delivery';
+  const category = categoryRaw.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
+  const location = 'Chennai, TN';
+  const priorityRaw = dto.urgency || 'High';
+  const priority = priorityRaw.charAt(0).toUpperCase() + priorityRaw.slice(1).toLowerCase();
+  const statusRaw = dto.status || 'New';
+  const status = statusRaw === 'RECEIVED' ? 'New' : statusRaw === 'INVESTIGATING' ? 'Investigating' : statusRaw === 'RESOLVED' ? 'Resolved' : statusRaw === 'ESCALATED' ? 'Escalated' : 'New';
+  const agent = dto.assignedToName && dto.assignedToName !== 'Unassigned' ? dto.assignedToName : 'Unassigned';
+
+  let received = 'Today, 10:00 AM';
+  let age = 'Just now';
+  if (dto.receivedAt) {
+    try {
+      const d = new Date(dto.receivedAt);
+      received = 'Today, ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const diffMins = Math.max(1, Math.floor((Date.now() - d.getTime()) / 60000));
+      age = diffMins < 60 ? (diffMins + ' min ago') : (Math.floor(diffMins / 60) + ' hr ago');
+    } catch {}
+  }
+
+  const summary = dto.emailBody || dto.emailSubject || 'Complaint reported by customer via portal.';
+
+  return {
+    id,
+    customer,
+    initials,
+    order,
+    category,
+    location,
+    priority: (['Critical', 'High', 'Medium', 'Low'].includes(priority) ? priority : 'High') as any,
+    status: (['New', 'Investigating', 'AI Review', 'Escalated', 'Resolved'].includes(status) ? status : 'New') as any,
+    agent,
+    received,
+    age,
+    summary,
+  };
+}
+
+const complaints: Complaint[] = [];
 
 const navItems: { label: View; icon: typeof Activity; count?: string }[] = [
   { label: 'Dashboard', icon: Command }, { label: 'Complaints', icon: MessageSquareText, count: '24' },
@@ -296,14 +333,14 @@ export default function DashboardPage() {
     {path === '/profile' || path === '/settings' ? <section className="panel utility-page"><span className="section-kicker">ACCOUNT</span><h1>{path === '/profile' ? 'My profile' : 'Settings'}</h1><p>{path === '/profile' ? 'Your support operations account.' : 'Manage your dashboard preferences.'}</p><div className="utility-profile"><span className="agent-avatar">{user.initials}</span><div><b>{user.name}</b><small>{user.role} · South Region</small></div></div>{path === '/settings' && <label className="settings-toggle"><input type="checkbox" defaultChecked /> Receive regional disruption notifications</label>}</section> : isDetail && selectedComplaint ? <ComplaintDetail complaint={selectedComplaint} onBack={() => go('Complaints')} /> : active === 'Dashboard' ? <>
       <div className="welcome-row"><div><span className="section-kicker">THURSDAY, 5 NOVEMBER 2026 <i className="kicker-dot" /> SOUTH REGION OPERATIONS</span><h1>Welcome back, <span>{user.firstName}</span></h1><p>Here's an overview of your logistics investigations and customer complaints.</p></div><button className="date-range"><Clock3 size={15} /> Today <ChevronDown size={14} /></button></div>
       <section className="kpi-grid" aria-label="Operations summary">
-        <KpiCard title="Total complaints received" value="248" detail="Across South Region today" trend="12.8%" icon={<MessageSquareText size={18} />} tone="brown" onClick={() => go('Complaints')} />
-        <KpiCard title="Open investigations" value="36" detail="12 require agent attention" trend="4.2%" icon={<FileSearch size={18} />} tone="gold" onClick={() => go('Investigations')} />
-        <KpiCard title="AI-resolved cases" value="172" detail="69% resolution rate" trend="8.1%" icon={<SparklesIcon />} tone="teal" onClick={() => go('Complaints', 'Resolved')} />
-        <KpiCard title="Pending human reviews" value="14" detail="Oldest case · 42 minutes" icon={<Users size={18} />} tone="slate" onClick={() => go('Escalated Cases')} />
+        <KpiCard title="Total complaints received" value={String(complaintList.length)} detail="Live cases from Supabase DB" trend="12.8%" icon={<MessageSquareText size={18} />} tone="brown" onClick={() => go('Complaints')} />
+        <KpiCard title="Open investigations" value={String(complaintList.filter(c => c.status === "Investigating").length)} detail="Under active AI analysis" trend="4.2%" icon={<FileSearch size={18} />} tone="gold" onClick={() => go('Investigations')} />
+        <KpiCard title="AI-resolved cases" value={String(complaintList.filter(c => c.status === "Resolved").length)} detail="Automated outcome reached" trend="8.1%" icon={<SparklesIcon />} tone="teal" onClick={() => go('Complaints', 'Resolved')} />
+        <KpiCard title="Pending human reviews" value={String(complaintList.filter(c => c.status === "New" || c.status === "Escalated").length)} detail="Needs review" icon={<Users size={18} />} tone="slate" onClick={() => go('Escalated Cases')} />
         <KpiCard title="Critical disruptions" value="03" detail="11 delivery zones affected" icon={<AlertTriangle size={18} />} tone="red" onClick={() => go('Regional Events')} />
-        <KpiCard title="Resolved complaints" value="196" detail="This week across the region" trend="6.4%" icon={<PackageCheck size={18} />} tone="mint" onClick={() => go('Complaints', 'Resolved')} />
+        <KpiCard title="Resolved complaints" value={String(complaintList.filter(c => c.status === "Resolved").length)} detail="Closed with outcome" trend="6.4%" icon={<PackageCheck size={18} />} tone="mint" onClick={() => go('Complaints', 'Resolved')} />
       </section>
-      <div className="dashboard-grid"><ComplaintsTable rows={complaints} onOpen={openComplaint} onViewAll={() => go('Complaints')} compact /><DeliveryMap /></div>
+      <div className="dashboard-grid"><ComplaintsTable rows={complaintList} onOpen={openComplaint} onViewAll={() => go('Complaints')} compact /><DeliveryMap /></div>
       <div className="lower-grid"><ActivityFeed /><QuickActions onNavigate={go} /></div>
       <div className="dashboard-footnote"><ShieldCheck size={14} /> Customer and shipment data is visible to authorized support personnel only.<span>Last synced 2 minutes ago</span></div>
     </> : <>
