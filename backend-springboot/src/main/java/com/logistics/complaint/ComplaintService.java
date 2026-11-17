@@ -47,7 +47,7 @@ public class ComplaintService {
         if (StringUtils.hasText(status) && !"All status".equalsIgnoreCase(status)) {
             complaints = complaintRepository.findByStatus(status);
         } else {
-            complaints = complaintRepository.findAll();
+            complaints = complaintRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "receivedAt"));
         }
         return complaints.stream().map(ComplaintResponseDto::fromEntity).collect(Collectors.toList());
     }

@@ -6,15 +6,22 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://queryx-backend-y1xq.onrender.com/api'
 
 export function getAuthToken(): string | null {
-  return localStorage.getItem('queryx_token')
+  return localStorage.getItem('queryx_team_token') || localStorage.getItem('queryx_token') || localStorage.getItem('queryx_customer_token')
 }
 
-export function setAuthToken(token: string) {
+export function setAuthToken(token: string, type: 'TEAM' | 'CUSTOMER' = 'TEAM') {
   localStorage.setItem('queryx_token', token)
+  if (type === 'CUSTOMER') {
+    localStorage.setItem('queryx_customer_token', token)
+  } else {
+    localStorage.setItem('queryx_team_token', token)
+  }
 }
 
 export function clearAuth() {
   localStorage.removeItem('queryx_token')
+  localStorage.removeItem('queryx_team_token')
+  localStorage.removeItem('queryx_customer_token')
   localStorage.removeItem('queryx_user')
 }
 
@@ -28,7 +35,13 @@ export function setStoredUser(user: any) {
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken()
+  let token = getAuthToken()
+  if (endpoint.startsWith('/complaints') && options.method !== 'POST') {
+    token = localStorage.getItem('queryx_team_token') || token
+  } else if (endpoint.startsWith('/complaints') && options.method === 'POST') {
+    token = localStorage.getItem('queryx_customer_token') || token
+  }
+
   const headers = new Headers(options.headers || {})
 
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {

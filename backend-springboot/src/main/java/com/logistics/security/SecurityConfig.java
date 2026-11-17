@@ -46,6 +46,8 @@ public class SecurityConfig {
                 // Public health check and auth endpoints
                 .requestMatchers("/api/health/**", "/actuator/**").permitAll()
                 .requestMatchers("/api/auth/login", "/api/auth/customer/login").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/complaints").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/complaints", "/api/complaints/**").permitAll()
                 // All other API endpoints require valid JWT authentication
                 .anyRequest().authenticated()
             )

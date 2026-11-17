@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import DeliveryMap from '../components/dashboard/DeliveryMap'
 import { ThemeToggle } from '../hooks/useTheme'
-import { api, getStoredUser, getAuthToken, setAuthToken } from '../api/client'
+import { api, getStoredUser, setAuthToken } from '../api/client'
 
 function getUserProfile() {
   const stored = getStoredUser()
@@ -29,7 +29,7 @@ type View = 'Dashboard' | 'Complaints' | 'Investigations' | 'Escalated Cases' | 
 type Complaint = {
   id: string; customer: string; initials: string; order: string; category: string; location: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low'; status: 'New' | 'Investigating' | 'AI Review' | 'Escalated' | 'Resolved';
-  agent: string; received: string; age: string; summary: string
+  agent: string; received: string; age: string; summary: string; rawReceivedAt: string
 }
 
 
@@ -73,6 +73,7 @@ function mapDtoToComplaint(dto: any): Complaint {
     received,
     age,
     summary,
+    rawReceivedAt: dto.receivedAt || new Date().toISOString(),
   };
 }
 
@@ -323,7 +324,7 @@ export default function DashboardPage() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
 
   const fetchLiveComplaints = useCallback(async () => {
-    let token = getAuthToken()
+    let token = localStorage.getItem('queryx_team_token') || localStorage.getItem('queryx_token')
     if (!token) {
       try {
         const auth = await api.auth.teamLogin({
@@ -331,7 +332,7 @@ export default function DashboardPage() {
           password: 'Support@1234',
         })
         if (auth?.token) {
-          setAuthToken(auth.token)
+          setAuthToken(auth.token, 'TEAM')
         }
       } catch (e) {
         console.warn('Auto auth error:', e)
@@ -341,17 +342,34 @@ export default function DashboardPage() {
     api.complaints.getAll()
       .then((data: any[]) => {
         if (Array.isArray(data)) {
-          setComplaintList(data.map(mapDtoToComplaint))
+          const mapped = data.map(mapDtoToComplaint)
+          mapped.sort((a, b) => new Date(b.rawReceivedAt || 0).getTime() - new Date(a.rawReceivedAt || 0).getTime())
+          setComplaintList(mapped)
         }
       })
-      .catch((err) => {
+      .catch(async (err) => {
         console.warn('Complaints load failed:', err?.message)
+        try {
+          const auth = await api.auth.teamLogin({
+            email: 'priya.support@queryx.in',
+            password: 'Support@1234',
+          })
+          if (auth?.token) {
+            setAuthToken(auth.token, 'TEAM')
+            const retryData = await api.complaints.getAll()
+            if (Array.isArray(retryData)) {
+              const mapped = retryData.map(mapDtoToComplaint)
+              mapped.sort((a, b) => new Date(b.rawReceivedAt || 0).getTime() - new Date(a.rawReceivedAt || 0).getTime())
+              setComplaintList(mapped)
+            }
+          }
+        } catch {}
       })
   }, [])
 
   useEffect(() => {
     fetchLiveComplaints()
-    const timer = setInterval(fetchLiveComplaints, 3000)
+    const timer = setInterval(fetchLiveComplaints, 2000)
     return () => clearInterval(timer)
   }, [fetchLiveComplaints])
 

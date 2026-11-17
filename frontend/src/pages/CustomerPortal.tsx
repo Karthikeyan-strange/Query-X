@@ -212,7 +212,7 @@ export default function CustomerPortal() {
           orderId: 'QX-2024-00001',
         })
         if (auth?.token) {
-          setAuthToken(auth.token)
+          setAuthToken(auth.token, 'CUSTOMER')
         }
       }
 

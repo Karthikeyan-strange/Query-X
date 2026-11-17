@@ -109,7 +109,7 @@ export default function LoginPage() {
 
     loginPromise
       .then((data) => {
-        setAuthToken(data.token)
+        setAuthToken(data.token, role === 'team' ? 'TEAM' : 'CUSTOMER')
         setStoredUser(data)
         if (role === 'team') {
           window.location.assign('/agent')
