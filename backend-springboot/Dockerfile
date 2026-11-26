@@ -33,4 +33,4 @@ COPY --from=builder /build/target/queryx-backend-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 
 # Launch Spring Boot with dynamic Render $PORT binding
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseSerialGC -XX:MaxRAMPercentage=75.0 -Xss512k -Dserver.port=${PORT:-8080} -jar app.jar"]

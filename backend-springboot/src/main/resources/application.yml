@@ -28,7 +28,7 @@ spring:
   # matches our JPA entity mappings without modifying or creating any tables.
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     open-in-view: false
     properties:
